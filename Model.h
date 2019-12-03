@@ -1,21 +1,28 @@
-#ifndef __MODEL_H
-#define __MODEL_H
+#ifndef Model_H
+#define Model_H
 
-#include <iostream>
-#include "Vector2.h"
-#include "Triangle2D.h"
+#include "Triangle.h"
+#include "Matrix.h"
+#include "Color.h"
+
 #include <vector>
+#include <string>
 using namespace std;
-class Model {
-    public:
-        Model();
-        int NumTriangles();
-        Triangle3D operator[ ](int i);
-        void Transform(Matrix4 transform);
-        void ReadFromOBJFile(string path, Color c);
 
-    private:
-        vector<Triangle3D> triangles;
+class Model{
+
+	private:
+		vector<Triangle3D> triangles;
+	
+	public:
+		Model();
+		int NumTriangles();
+		Triangle3D operator[](int i);
+		void Transform(Matrix4 m);
+		void ReadFromOBJFile(string filepath, Color pFillColor);
+		void Homogenize();
+		void PerformBackfaceCulling(Vector4 eye, Vector4 spot);
 
 };
+
 #endif

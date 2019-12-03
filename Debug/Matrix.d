@@ -1,5 +1,5 @@
-Matrix.o: ../Matrix.cpp ../Matrix.h ../Vector2.h
+Matrix.o: ../Matrix.cpp ../Matrix.h ../Vector.h
 
 ../Matrix.h:
 
-../Vector2.h:
+../Vector.h:

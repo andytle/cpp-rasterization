@@ -1,224 +1,132 @@
 #include "Raster.h"
-#include "Vector2.h"
-#include <iostream>
 #include <fstream>
-#include <cmath>
-#include <algorithm>
-using namespace std;
+#include <math.h>
+#include <limits>
+	using namespace std;
 
-Raster::Raster()
-  : width(0), height(0), pixels(NULL){  
-
+Raster::Raster(){
+	height = 0;
+	width = 0;
+	colorPixels = nullptr;
+	depthPixels = nullptr;
 }
 
-Raster::Raster(int pWidth, int pHeight, Color pFillColor)
-  : width(pWidth), height(pHeight){
-  int size = width * height;
-  pixels = new (nothrow) Color[size];
-  if (pixels == nullptr){
-      cout << "Error: the allocation of this block memory failed" << endl;
-  }
-  else {
-    for (int i = 0; i < size; i++){
-        pixels[i] = pFillColor;
-    }
-  }
-
+Raster::Raster(int pWidth, int pHeight, Color pFillColor){
+	width = pWidth;
+	height = pHeight;
+	int totalPixels = width * height;
+	colorPixels = new Color[totalPixels];
+	depthPixels = new float[totalPixels];
+	for (int i = 0; i < totalPixels; i++){
+		colorPixels[i] = pFillColor;
+	}
+	for (int i = 0; i < totalPixels; i++){
+		depthPixels[i] = numeric_limits<float>::max();
+	}
 }
+
+void Model::Homogenize(){
+	for (int i = 0; i < triangles.size(); i++){
+		triangles[i].v0 = (triangles[i].v0)*(1/(triangles[i].v0.w));
+		triangles[i].v1 = (triangles[i].v1)*(1/(triangles[i].v1.w));
+		triangles[i].v2 = (triangles[i].v2)*(1/(triangles[i].v2.w));
+		}
+}
+
+void Model::PerformBackfaceCulling(Vector4 eye, Vector4 spot){
+	for (int i = 0; i < triangles.size(); i++){
+		Vector4 a = triangles[i].v2 - triangles[i].v1;
+		Vector4 b = triangles[i].v0 - triangles[i].v1;
+		Vector4 normal = a.Cross(b).Normalize();
+		if ((spot-eye).Dot(normal) < 0.0){
+			triangles[i].shouldDraw = false;
+			triangles[i].c0 = Blue;
+			triangles[i].c1 = Blue;
+			triangles[i].c2 = Blue;
+		}
+	}
+}
+
 
 Raster::~Raster(){
-    delete [] pixels;
+	delete[] colorPixels;
+	delete[] depthPixels;
 }
 
 int Raster::GetWidth(){
-    return width;
+	return width;
 }
 
 int Raster::GetHeight(){
-    return height;
+	return height;
 }
 
 Color Raster::GetColorPixel(int x, int y){
-    return pixels[width * (height-y-1) + x];
+	int totalPixels = width * height;
+	int idx = ((height - y - 1) * width) + x;
+	if (idx >= 0 && idx < totalPixels){
+		return colorPixels[idx];
+	}
+	else
+		return Transparent;
+}
+
+float Raster::GetDepthPixel(int x, int y){
+	int totalPixels = width * height;
+	int idx = ((height - y - 1) * width) + x;
+	if (idx >= 0 && idx < totalPixels){
+		return depthPixels[idx];
+	}
+	else
+		return numeric_limits<float>::max();
 }
 
 void Raster::SetColorPixel(int x, int y, Color pFillColor){
-    pixels[width * (height-y-1) + x] = pFillColor;
+	int totalPixels = width * height;
+	int idx = ((height - y - 1) * width) + x;
+	if (idx >= 0 && idx < totalPixels){
+		colorPixels[idx] = pFillColor;
+	}
 }
 
-void Raster::clear(Color pFillColor){
-    for (int i = 0; i < width * height; i++){
-        pixels[i] = pFillColor;
-    }
+void Raster::SetDepthPixel(int x, int y, float d){
+	int totalPixels = width * height;
+	int idx = ((height - y - 1) * width) + x;
+	if (idx >= 0 && idx < totalPixels){
+		depthPixels[idx] = d;
+	}
+}
+
+void Raster::Clear(Color pFillColor){
+	int totalPixels = width * height;
+	for (int i = 0; i < totalPixels; i++){
+		colorPixels[i] = pFillColor;
+	}
+}
+
+void Raster::Clear(float d){
+	int totalPixels = width * height;
+	for (int i = 0; i < totalPixels; i++){
+		depthPixels[i] = d;
+	}
 }
 
 void Raster::WriteToPPM(){
-    ofstream img;
-    img.open("andy1.ppm");
-    img.clear();
-    img << "P3" << endl;
-    img << width << " " << height << endl;
-    img << "255" << endl;
-    for (int i = 0; i < width * height; i++){
-        int r = pixels[i].red * 255;
-        int g = pixels[i].green * 255;
-        int b = pixels[i].blue * 255;
-        img << r << " " << g << " " << b << endl;
-    }
-    img.close();
-}
-
-void Raster::DrawLine_DDA(float x1, float y1, float x2, float y2, Color fillColor){
-    if (x1 == x2){ //vertical
-        swap(x1, y1, x2, y2);
-        x1 = round(x1);
-        y1 = round(y1);
-        for (int y = y1; y <= y2; y++){
-            SetColorPixel(x1, round(y), fillColor);
-        }
-    }
-    else{ //not vertical
-        swap(x1, y1, x2, y2);
-        float m = ((y2 - y1)/(x2 - x1)); //slope
-        if (abs(m) <= 1){ //slope is less than 1
-            x1 = round(x1);
-            float y = round(y1);
-            for (int x = x1; x <= x2; x++){
-                SetColorPixel(x, round(y), fillColor);
-                y += m;
-            }
-        }
-        else {
-            m = 1/m;
-            y2 = round(y2);
-            float x = round(x2);
-            for (int y = y2; y >= y1; y--){
-                SetColorPixel(round(x), y, fillColor);
-                x -= m;
-            }
-        }
-    }
-}
-
-void Raster::DrawLine_DDA_Interpolated(float x1, float y1, float x2, float y2, Color color1, Color color2){
-    if (x1 == x2){ //vertical
-        swap(x1, y1, x2, y2);
-        Vector2 first(x2-x1,y2-y1);
-        x1 = round(x1);
-        y1 = round(y1);
-
-        for (int y = y1; y <= y2; y++){
-        	Vector2 point(x1,y);
-        	float ratio = point.Magnitude()/first.Magnitude();
-        	Color set = color2*ratio + color1*(1.0-ratio);
-            SetColorPixel(x1, round(y), set);
-        }
-    }
-    else{ //not vertical
-        swap(x1, y1, x2, y2);
-        Vector2 first(x2-x1,y2-y1);
-        float m = ((y2 - y1)/(x2 - x1)); //slope
-
-        if (abs(m) <= 1){ //slope is less than 1
-            x1 = round(x1);
-            float y = round(y1);
-            for (int x = x1; x <= x2; x++){
-            	Vector2 point(x,y1);
-            	float ratio = point.Magnitude()/first.Magnitude();
-            	Color set = color2*ratio + color1*(1.0-ratio);
-                SetColorPixel(x, round(y), set);
-                y += m;
-            }
-        }
-        else {
-            m = 1/m;
-            y2 = round(y2);
-            float x = round(x2);
-            for (int y = y2; y >= y1; y--){
-            	Vector2 point(x,y1);
-            	float ratio = point.Magnitude()/first.Magnitude();
-            	Color set = color2*ratio + color1*(1.0-ratio);
-                SetColorPixel(x, round(y), set);
-                x -= m;
-            }
-        }
-    }
-}
-
-void Raster::swapVector2(Vector2 &v0, Vector2 &v1, Vector2 &v2){
-    float centerX = (v0.x + v1.x + v2.x);
-    float centerY = (v0.y + v1.y + v2.y);
-    Vector2 center(centerX, centerY);
-    float det = Determinant(v0 - center, v1 - center);
-    if(det < 0){
-        Vector2 temp = v1;
-        v1 = v0;
-        v0 = temp;
-    }
-}
-
-void Raster::DrawTriangle2D_DotProduct(Triangle2D triangle){
-	//swapVector2(triangle.v0, triangle.v1, triangle.v2);
-	float minx = min(min(triangle.v0.x, triangle.v1.x), triangle.v2.x);
-	float miny = min(min(triangle.v0.y, triangle.v1.y), triangle.v2.y);
-	float maxx = max(max(triangle.v0.x, triangle.v1.x), triangle.v2.x);
-	float maxy = max(max(triangle.v0.y, triangle.v1.y), triangle.v2.y);
-	if (minx < 0) minx = 0;
-	if (miny < 0) miny = 0;
-	if (maxx > width) minx = width;
-	if (maxy > height) minx = height;
-	for(int x = minx; x <= maxx; x++){
-		for(int y = miny; y <= maxy; y++){
-			Vector2 p(x,y);
-			SetColorPixel(x,y, Black);
-			if (triangle.inside(p))
-				SetColorPixel(x,y, Red);
+	ofstream oFile;
+	oFile.open("FRAME_BUFFER.ppm");
+	oFile << "P3" << "\n";
+	oFile << width << " " << height << "\n";
+	oFile << "255" << "\n";
+	for (int row = 0; row < height; row++){
+		for (int col = 0; col < width; col++){
+			int r, g, b, a;
+			int idx = (row * width) + col;
+			colorPixels[idx].GetIntegerChannels(&r, &g, &b, &a);
+			oFile << int(r) << " " << int(g) << " " << int(b) << " ";
 		}
+		oFile << "\n";
 	}
-}
-void Raster::DrawTriangle3D_Barycentric(Triangle3D Tri3D){
-	Triangle2D T(Tri3D);
-	float minx = min(min(T.v0.x, T.v1.x), T.v2.x);
-	float miny = min(min(T.v0.y, T.v1.y), T.v2.y);
-	float maxx = max(max(T.v0.x, T.v1.x), T.v2.x);
-	float maxy = max(max(T.v0.y, T.v1.y), T.v2.y);
-	if (minx < 0) minx = 0;
-	if (miny < 0) miny = 0;
-	if (maxx > width) minx = width;
-	if (maxy > height) minx = height;
-	for(int x = minx; x <= maxx; x++){
-		for(int y = miny; y <= maxy; y++){
-			Vector2 p(x,y);
-			float lambda0, lambda1, lambda2;
-			T.CalculateBarycentricCoordinates(p, lambda0, lambda1, lambda2);
-			if (lambda0 >= 0 && lambda1 >= 0 && lambda2 >= 0){
-				Color setColor = T.c0*lambda0
-								+ T.c1*lambda1
-								+ T.c2*lambda2;
-				SetColorPixel(x,y, setColor);
-			}
-		}
-	}
-}
-
-void Raster::swap(float& x1, float& y1, float& x2, float& y2){
-    if (x1 > x2){
-        float temp_x, temp_y;
-        temp_x = x1;
-        x1 = x2;
-        x2 = temp_x;
-        temp_y = y1;
-        y1 = y2;
-        y2 = temp_y;
-    }
-    else if (x1 == x2) {
-        if (y1 > y2){
-        float temp_y;
-        temp_y = y1;
-        y1 = y2;
-        y2 = temp_y;
-        }
-    }
+	oFile.close();
 }
 
 void Raster::DrawModel(Model m){
@@ -226,3 +134,37 @@ void Raster::DrawModel(Model m){
 		DrawTriangle3D_Barycentric(m[i]);
 	}
 }
+
+void Raster::DrawTriangle3D_Barycentric(Triangle3D t){
+	if (t.shouldDraw == false)
+		return;
+
+	int xMin = fmax(0, fmin(fmin(floor(t.v0.x), floor(t.v1.x)), floor(t.v2.x)));
+	int xMax = fmin(GetWidth(), fmax(fmax(ceil(t.v0.x), ceil(t.v1.x)), ceil(t.v2.x)));
+	int yMin = fmax(0, fmin(fmin(floor(t.v0.y), floor(t.v1.y)), floor(t.v2.y)));
+	int yMax = fmin(GetHeight(), fmax(fmax(ceil(t.v0.y), ceil(t.v1.y)), ceil(t.v2.y)));
+
+	Triangle2D myTri(t);
+
+	for (int x = xMin; x < xMax; x++){
+		for (int y = yMin; y < yMax; y++){
+			
+			float lambda1 = 0.0;
+			float lambda2 = 0.0;
+			float lambda3 = 0.0;
+
+			myTri.CalculateBarycentricCoordinates(Vector2(float(x) + 0.5, float(y) + 0.5), lambda1, lambda2, lambda3);
+
+			if (lambda1 >= 0.0 && lambda2 >= 0.0 && lambda3 >= 0.0){
+				float setDepth = t.v0.z*lambda1
+								+ t.v1.z*lambda2
+								+ t.v2.z*lambda3;
+				if (setDepth < GetDepthPixel(x,y)){
+					SetDepthPixel(x, y, setDepth);
+					SetColorPixel(x, y, t.c0*lambda1 + t.c1*lambda2 + t.c2*lambda3);
+				}
+			}
+		}
+	}
+}
+

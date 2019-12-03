@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 OBJ_SRCS += \
+../bunny.obj \
 ../teapot.obj 
 
 CPP_SRCS += \
@@ -11,8 +12,8 @@ CPP_SRCS += \
 ../Matrix.cpp \
 ../Model.cpp \
 ../Raster.cpp \
-../Triangle2D.cpp \
-../Vector2.cpp \
+../Triangle.cpp \
+../Vector.cpp \
 ../main.cpp \
 ../test.cpp 
 
@@ -21,8 +22,8 @@ OBJS += \
 ./Matrix.o \
 ./Model.o \
 ./Raster.o \
-./Triangle2D.o \
-./Vector2.o \
+./Triangle.o \
+./Vector.o \
 ./main.o \
 ./test.o 
 
@@ -31,8 +32,8 @@ CPP_DEPS += \
 ./Matrix.d \
 ./Model.d \
 ./Raster.d \
-./Triangle2D.d \
-./Vector2.d \
+./Triangle.d \
+./Vector.d \
 ./main.d \
 ./test.d 
 

@@ -1,61 +1,53 @@
-#include "Raster.h"
-#include "Vector2.h"
 #include "Model.h"
-#include <iostream>
 #include <fstream>
+#include <math.h>
 #include <sstream>
-#include <cmath>
-#include <algorithm>
-using namespace std;
 
-Model::Model()
-: triangles({}){}
-
-int Model::NumTriangles(){
-	return triangles.size();
+Model::Model(){
+	triangles = vector<Triangle3D>();
 }
 
-Triangle3D Model::operator[ ](int i){
-	return triangles.at(i);
+int Model::NumTriangles(){ return triangles.size(); }
+
+Triangle3D Model::operator[](int i){
+	return triangles[i];
 }
 
-void Model::Transform(Matrix4 transform){
-	triangles.at(0).v0.print();
-	triangles.at(0).v1.print();
-	triangles.at(0).v2.print();
+void Model::Transform(Matrix4 m){
 	for (int i = 0; i < triangles.size(); i++){
-		triangles.at(i).Transform(transform);
+		triangles[i].Transform(m);
 	}
-	triangles.at(0).v0.print();
-	triangles.at(0).v1.print();
-	triangles.at(0).v2.print();
 }
 
-void Model::ReadFromOBJFile(string path, Color c){
-	vector<Vector4> vects;
-	ifstream myFile(path);
-	if (myFile.is_open()){
-		string line;
-		while (getline(myFile,line)){
+void Model::ReadFromOBJFile(string filepath, Color pFillColor){
+	ifstream ifile(filepath);
+	string line;
+	vector<string> words;
+	vector<Vector4> vertices;
+	vector<Triangle3D> vectriangles;
+
+	if (ifile.is_open())
+	{
+		while (getline(ifile, line)){
+
 			istringstream s(line);
-			string myWord;
-			vector<string> words;
-			while(getline(s,myWord,' ')){
-				words.push_back(myWord);
+
+			std::string sub;
+			while (s >> sub){
+				words.push_back(sub);
 			}
-			if (words[0].compare("v") == 0) {
-				Vector4 add(stof(words[1]),
-						stof(words[2]),
-						stof(words[3]), 1);
-				vects.push_back(add);
-			}
-			if (words[0].compare("f") == 0) {
-				Triangle3D add(vects.at(stoi(words[1])-1),
-						(vects.at(stoi(words[2])-1)),
-						(vects.at(stoi(words[3])-1)),
-						 c, c, c);
-				triangles.push_back(add);
+			if (words.size() > 0){
+				if (words[0] == "v"){
+					// Vertex
+					vertices.push_back(Vector4(atof(words[1].c_str()), atof(words[2].c_str()), atof(words[3].c_str()),1.0));
+				}
+				else if (words[0] == "f"){
+					// Face
+					triangles.push_back(Triangle3D(vertices[atoi(words[1].c_str()) - 1], vertices[atoi(words[2].c_str()) - 1], vertices[atoi(words[3].c_str()) - 1], pFillColor, pFillColor, pFillColor,true));
+				}
+				words.clear();
 			}
 		}
 	}
+	ifile.close();
 }

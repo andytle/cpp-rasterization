@@ -1,14 +1,14 @@
-main.o: ../main.cpp ../Color.h ../Raster.h ../Triangle2D.h ../Vector2.h \
- ../Matrix.h ../Model.h
+main.o: ../main.cpp ../Color.h ../Model.h ../Triangle.h ../Vector.h \
+ ../Matrix.h ../Raster.h
 
 ../Color.h:
 
-../Raster.h:
+../Model.h:
 
-../Triangle2D.h:
+../Triangle.h:
 
-../Vector2.h:
+../Vector.h:
 
 ../Matrix.h:
 
-../Model.h:
+../Raster.h:

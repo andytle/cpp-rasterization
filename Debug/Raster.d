@@ -1,13 +1,13 @@
-Raster.o: ../Raster.cpp ../Raster.h ../Color.h ../Triangle2D.h \
- ../Vector2.h ../Matrix.h ../Model.h
+Raster.o: ../Raster.cpp ../Raster.h ../Color.h ../Triangle.h ../Vector.h \
+ ../Matrix.h ../Model.h
 
 ../Raster.h:
 
 ../Color.h:
 
-../Triangle2D.h:
+../Triangle.h:
 
-../Vector2.h:
+../Vector.h:
 
 ../Matrix.h:
 
